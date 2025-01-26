@@ -1,11 +1,12 @@
+
 use xrp::*;
 
 pub struct Robot {
-
+    gui: gui::FieldGui,
 }
 impl RobotBase for Robot {
     fn init() -> Self {
-        todo!()
+        Self {gui: gui::FieldGui::new()  }
     }
 
     fn periodic(&mut self) {
@@ -18,4 +19,5 @@ impl RobotBase for Robot {
 }
 
 fn main() {
+    let robot = Robot::init();
 }

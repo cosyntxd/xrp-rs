@@ -4,4 +4,4 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-xrp = {path = "../library"}
+xrp = {path = "../library", features = ["gui"]}
