@@ -2,11 +2,17 @@
 use xrp::*;
 
 pub struct Robot {
+    left_motor: u8,
+    right_motor: u8,
     gui: gui::FieldGui,
 }
 impl RobotBase for Robot {
     fn init() -> Self {
-        Self {gui: gui::FieldGui::new()  }
+        Self {
+            left_motor: 0,
+            right_motor: 0,
+            gui: gui::FieldGui::new()
+        }
     }
 
     fn periodic(&mut self) {
