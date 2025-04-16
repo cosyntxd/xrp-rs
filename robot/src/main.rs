@@ -1,5 +1,4 @@
-
-use xrp::*;
+use xrp::{frc::motor::Motor, *};
 
 pub struct Robot {
     left_motor: u8,
@@ -11,7 +10,7 @@ impl RobotBase for Robot {
         Self {
             left_motor: 0,
             right_motor: 0,
-            gui: gui::FieldGui::new()
+            gui: gui::FieldGui::new(),
         }
     }
 
@@ -26,4 +25,5 @@ impl RobotBase for Robot {
 
 fn main() {
     let robot = Robot::init();
+    let a = subsystem::Subsystem::new(Motor::new());
 }

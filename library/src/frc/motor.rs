@@ -13,7 +13,11 @@ impl SubsystemTrait for Motor {
         todo!()
     }
 
-    fn on_packet(&mut self) {
+    fn received_packet(&mut self) {
+        todo!()
+    }
+
+    fn sending_packet(&mut self) {
         todo!()
     }
 }
