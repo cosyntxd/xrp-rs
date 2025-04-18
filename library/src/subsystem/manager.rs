@@ -1,4 +1,6 @@
 use std::collections::{HashSet, VecDeque};
+use std::sync::atomic::AtomicU64;
+use std::sync::RwLock;
 use std::sync::{
     atomic::{AtomicU16, Ordering},
     Arc, Mutex, MutexGuard,
@@ -6,24 +8,37 @@ use std::sync::{
 
 use once_cell::sync::Lazy;
 
-use super::{Subsystem, SubsystemTrait};
+use crate::frc::motor::Motor;
+
+use super::{Subsystem, SubsystemInner, SubsystemTrait};
 
 static TRACKED_SUBSYSTEMS: Lazy<Arc<Mutex<Vec<Subsystem<dyn SubsystemTrait>>>>> =
     Lazy::new(|| Arc::new(Mutex::new(vec![])));
 static mut ID: u16 = 1;
+static mut UUID: AtomicU64 = AtomicU64::new(0); // you deserve to crash if you have 2^64 subsystems
+pub fn generate_uuid() -> u64 {
+    // i can relax ordering but that means i need to read the docs
+    unsafe { UUID.fetch_add(1, Ordering::SeqCst) }
+}
 
-pub fn get_subsystems() -> MutexGuard<'static, Vec<Subsystem<(dyn SubsystemTrait + 'static)>>> {
+pub fn get_subsystems() -> MutexGuard<'static, Vec<Subsystem<(dyn SubsystemTrait)>>> {
     TRACKED_SUBSYSTEMS.lock().unwrap()
 }
 
-pub fn add_subsystem(subsystem: Subsystem<dyn SubsystemTrait>) {
-    get_subsystems().push(subsystem);
+pub fn add_subsystem<T>(subsystem: &Subsystem<T>)
+where
+    T: SubsystemTrait + ?Sized + 'static,
+{
+    get_subsystems().push(subsystem.clone().as_dyn());
 }
 
 pub fn execute_all(mut func: impl FnMut(&mut dyn SubsystemTrait)) {
     let mut subsystems = get_subsystems();
     // todo: make better
     // few loc but worst case is O(n^2)
+    // executes all subsystems while respecting dependencies
+    // i dont wanna write it properly rn cuz that will be like +150 loc
+    
     for i in 0..500 {
         for sub in subsystems.iter_mut() {
             if (sub
@@ -40,4 +55,12 @@ pub fn execute_all(mut func: impl FnMut(&mut dyn SubsystemTrait)) {
             }
         }
     }
+    unsafe { ID += 1 };
+    // doesnt respect deps but will run them all 
+    // for sub in subsystems.iter_mut() {
+    //     let a = &mut sub.get_mut().guard.inner.inner;
+    //     if let Some(v) = a {
+    //         func(v.as_mut());
+    //     }
+    // }
 }
