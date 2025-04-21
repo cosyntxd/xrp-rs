@@ -7,6 +7,8 @@ use std::{
 };
 
 pub trait SubsystemTrait: Send + Sync {
+    // fn new();
+    // fn new_sim();
     fn periodic(&mut self);
     fn received_packet(&mut self);
     fn sending_packet(&mut self);
@@ -15,7 +17,14 @@ pub struct RawSubsystem<T: SubsystemTrait + ?Sized> {
     // optional just so i can drop it without informing every dependency who has arc ref
     // in theory it cann be None only when resolving dependencies and never for user
     pub inner: Option<Box<T>>,
+    pub creation: Instant,
+
+    // should be Optional<Instant> but i dont think people coming from java will like
+    // to do proper error handling. They are fine with errors just not the handling part
     pub last_periodic: Instant,
+    pub last_sent_packet: Instant,
+    pub last_recieve_packet: Instant,
+    pub uuid: u64,
 }
 struct SubsystemInner<T: SubsystemTrait + ?Sized> {
     pub inner: RawSubsystem<T>,
@@ -31,20 +40,29 @@ impl<T: SubsystemTrait> Subsystem<T> {
         Self::from_box(Box::new(subsystem))
     }
 }
+
 impl<T: SubsystemTrait + ?Sized> Subsystem<T> {
     pub fn from_box(boxed_subsystem: Box<T>) -> Subsystem<T> {
+        let time = Instant::now();
         let managed_subsystem = Subsystem {
             inner: Arc::new(RwLock::new(SubsystemInner {
                 inner: RawSubsystem {
                     inner: Some(boxed_subsystem),
-                    last_periodic: Instant::now(),
+                    creation: time,
+                    last_periodic: time,
+                    last_sent_packet: time,
+                    last_recieve_packet: time,
+                    uuid: 0,
                 },
                 deps: vec![],
                 execution_id: 0,
             })),
         };
+        // manager::add_subsystem(&managed_subsystem);
         managed_subsystem
     }
+
+    
     pub fn depends_on(&mut self, other: &Subsystem<dyn SubsystemTrait>) {
         let mut inner = self.inner.write().unwrap();
         inner.deps.push(Subsystem {
@@ -61,8 +79,23 @@ impl<T: SubsystemTrait + ?Sized> Subsystem<T> {
 
     pub fn get_mut(&mut self) -> SubsystemGuard<T> {
         SubsystemGuard {
-            guard: self.inner.write().ok().unwrap(),
+            guard: self.inner.write().unwrap(),
         }
+    }
+    pub fn read(&self) -> SubsystemReadGuard<T> {
+        SubsystemReadGuard {
+            guard: self.inner.read().unwrap(),
+        }
+    }
+    // todo fancy impl decleration
+    /// SAFETY: sould outlive original and if either is dropped, so will inner subsystem
+    pub fn clone(&self) -> Subsystem<T> {
+        Subsystem { inner: Arc::clone(&self.inner) }
+    }
+}
+impl Subsystem<dyn SubsystemTrait + 'static> {
+    pub fn as_dyn(self) -> Subsystem<dyn SubsystemTrait + 'static> {
+        self
     }
 }
 
@@ -71,10 +104,10 @@ impl<T: SubsystemTrait + ?Sized> Drop for Subsystem<T> {
         if let Ok(mut inner) = self.inner.write() {
             inner.deps.clear();
             // todo: are both needed?
+            inner.inner.inner = None;
             if let Some(subsystem) = inner.inner.inner.take() {
                 drop(subsystem);
             }
-            inner.inner.inner = None;
         }
     }
 }
@@ -107,10 +140,18 @@ impl<'a, T: SubsystemTrait + ?Sized> Deref for SubsystemReadGuard<'a, T> {
     }
 }
 
-impl<T: SubsystemTrait + ?Sized> Subsystem<T> {
-    pub fn read(&self) -> Option<SubsystemReadGuard<T>> {
-        Some(SubsystemReadGuard {
-            guard: self.inner.read().ok()?,
-        })
-    }
+// impl<T: SubsystemTrait + ?Sized> Subsystem<T> {
+//     pub fn read(&self) -> Option<SubsystemReadGuard<T>> {
+//         Some(SubsystemReadGuard {
+//             guard: self.inner.read().ok()?,
+//         })
+//     }
+// }
+
+impl<T: SubsystemTrait + Sized + 'static> Clone for Subsystem<T> {
+    fn clone(&self) -> Self {
+        Subsystem {
+            inner: Arc::clone(&self.inner),
+        }
+   }
 }

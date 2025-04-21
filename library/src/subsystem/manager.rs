@@ -29,7 +29,7 @@ pub fn add_subsystem<T>(subsystem: &Subsystem<T>)
 where
     T: SubsystemTrait + ?Sized + 'static,
 {
-    get_subsystems().push(subsystem.clone().as_dyn());
+    // get_subsystems().push(subsystem.clone().as_dyn());
 }
 
 pub fn execute_all(mut func: impl FnMut(&mut dyn SubsystemTrait)) {
