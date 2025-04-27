@@ -24,7 +24,6 @@ pub struct RawSubsystem<T: SubsystemTrait + ?Sized> {
     pub last_periodic: Instant,
     pub last_sent_packet: Instant,
     pub last_recieve_packet: Instant,
-    pub uuid: u64,
 }
 struct SubsystemInner<T: SubsystemTrait + ?Sized> {
     pub inner: RawSubsystem<T>,
@@ -52,7 +51,6 @@ impl<T: SubsystemTrait + ?Sized> Subsystem<T> {
                     last_periodic: time,
                     last_sent_packet: time,
                     last_recieve_packet: time,
-                    uuid: 0,
                 },
                 deps: vec![],
                 execution_id: 0,
@@ -82,7 +80,7 @@ impl<T: SubsystemTrait + ?Sized> Subsystem<T> {
             guard: self.inner.write().unwrap(),
         }
     }
-    pub fn read(&self) -> SubsystemReadGuard<T> {
+    pub fn get_nonmut(&self) -> SubsystemReadGuard<T> {
         SubsystemReadGuard {
             guard: self.inner.read().unwrap(),
         }
@@ -91,11 +89,6 @@ impl<T: SubsystemTrait + ?Sized> Subsystem<T> {
     /// SAFETY: sould outlive original and if either is dropped, so will inner subsystem
     pub fn clone(&self) -> Subsystem<T> {
         Subsystem { inner: Arc::clone(&self.inner) }
-    }
-}
-impl Subsystem<dyn SubsystemTrait + 'static> {
-    pub fn as_dyn(self) -> Subsystem<dyn SubsystemTrait + 'static> {
-        self
     }
 }
 
@@ -140,13 +133,13 @@ impl<'a, T: SubsystemTrait + ?Sized> Deref for SubsystemReadGuard<'a, T> {
     }
 }
 
-// impl<T: SubsystemTrait + ?Sized> Subsystem<T> {
-//     pub fn read(&self) -> Option<SubsystemReadGuard<T>> {
-//         Some(SubsystemReadGuard {
-//             guard: self.inner.read().ok()?,
-//         })
-//     }
-// }
+impl<T: SubsystemTrait + ?Sized> Subsystem<T> {
+    pub fn read(&self) -> Option<SubsystemReadGuard<T>> {
+        Some(SubsystemReadGuard {
+            guard: self.inner.read().ok()?,
+        })
+    }
+}
 
 impl<T: SubsystemTrait + Sized + 'static> Clone for Subsystem<T> {
     fn clone(&self) -> Self {
@@ -155,3 +148,11 @@ impl<T: SubsystemTrait + Sized + 'static> Clone for Subsystem<T> {
         }
    }
 }
+
+impl<T: SubsystemTrait + ?Sized> PartialEq for Subsystem<T> {
+    fn eq(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.inner, &other.inner)
+    }
+}
+
+impl<T: SubsystemTrait + ?Sized> Eq for Subsystem<T> {}
