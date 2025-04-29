@@ -2,12 +2,12 @@ pub mod manager;
 
 use std::{
     ops::{Deref, DerefMut},
-    sync::{atomic::AtomicU16, Arc, Mutex, RwLock, RwLockWriteGuard},
+    sync::{Arc, RwLock, RwLockWriteGuard},
     time::Instant,
 };
 
 pub trait SubsystemTrait: Send + Sync {
-    // fn new();
+    // fn new(id: u8) -> Self;
     // fn new_sim();
     fn periodic(&mut self);
     fn received_packet(&mut self);
@@ -60,7 +60,6 @@ impl<T: SubsystemTrait + ?Sized> Subsystem<T> {
         managed_subsystem
     }
 
-    
     pub fn depends_on(&mut self, other: &Subsystem<dyn SubsystemTrait>) {
         let mut inner = self.inner.write().unwrap();
         inner.deps.push(Subsystem {
@@ -88,7 +87,9 @@ impl<T: SubsystemTrait + ?Sized> Subsystem<T> {
     // todo fancy impl decleration
     /// SAFETY: sould outlive original and if either is dropped, so will inner subsystem
     pub fn clone(&self) -> Subsystem<T> {
-        Subsystem { inner: Arc::clone(&self.inner) }
+        Subsystem {
+            inner: Arc::clone(&self.inner),
+        }
     }
 }
 
@@ -146,7 +147,7 @@ impl<T: SubsystemTrait + Sized + 'static> Clone for Subsystem<T> {
         Subsystem {
             inner: Arc::clone(&self.inner),
         }
-   }
+    }
 }
 
 impl<T: SubsystemTrait + ?Sized> PartialEq for Subsystem<T> {
