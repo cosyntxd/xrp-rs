@@ -1,7 +1,35 @@
-// use std::sync::{
-//     Arc, Mutex,
-// };
+// todo: is a mutex needed here
 
+use once_cell::sync::Lazy;
+
+use super::{StrongOpaque, Subsystem, SubsystemTrait, WeakOpaque};
+static TRACKER: Lazy<SubsystemManager> = Lazy::new(|| SubsystemManager::new());
+pub struct SubsystemManager {
+    subsystems: Vec<WeakOpaque>,
+}
+impl SubsystemManager {
+    pub fn new() -> Self {
+        Self { subsystems: vec![] }
+    }
+    pub fn add_subsystem<T: SubsystemTrait>(&mut self, subsystem: Subsystem<T>) {
+        self.subsystems.push(subsystem.as_opaque_weak());
+    }
+    pub fn get_subsystems(&mut self) -> &mut Vec<WeakOpaque> {
+        &mut self.subsystems
+    }
+    pub fn get_subsystems_by_type<T: SubsystemTrait>(&mut self) -> Vec<StrongOpaque> {
+        let mut out = vec![];
+        for sub in self.get_subsystems() {
+            if let Some(strong) = sub.upgrade() {
+                let inner = &strong.read().unwrap().inner;
+                if inner.inner.is::<T>() {
+                    out.push(strong.clone())
+                }
+            }
+        }
+        out
+    }
+}
 // use once_cell::sync::Lazy;
 
 // // use super::{Subsystem, SubsystemTrait};

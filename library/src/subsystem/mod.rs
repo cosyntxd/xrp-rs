@@ -14,7 +14,7 @@ pub trait SubsystemTrait: Send + Sync + Any + 'static {
     fn sending_packet(&mut self);
 }
 pub struct SubsystemRaw {
-    pub inner: Box<dyn Any>,
+    pub inner: Box<dyn Any + Send + Sync>,
     pub creation: Instant,
     pub last_periodic: Instant,
     pub last_sent_packet: Instant,
