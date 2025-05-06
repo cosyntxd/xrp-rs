@@ -9,6 +9,7 @@ use std::{
 };
 
 pub trait SubsystemTrait: Send + Sync + Any + 'static {
+    // todo: pass in more values, either dt or like everything
     fn periodic(&mut self);
     fn received_packet(&mut self);
     fn sending_packet(&mut self);
@@ -19,6 +20,15 @@ pub struct SubsystemRaw {
     pub last_periodic: Instant,
     pub last_sent_packet: Instant,
     pub last_receive_packet: Instant,
+}
+// todo: check with miri for soundness
+impl SubsystemRaw {
+    pub fn as_type<T: SubsystemTrait>(&mut self) -> Option<&mut Box<T>>{
+        self.inner.downcast_mut::<Box<T>>()
+    }
+    pub fn get_base(&mut self) -> &mut Box<dyn SubsystemTrait + 'static> {
+        self.inner.downcast_mut::<Box<dyn SubsystemTrait>>().unwrap()
+    }
 }
 pub struct SubsystemManaged {
     pub inner: SubsystemRaw,
@@ -55,8 +65,7 @@ impl<T: SubsystemTrait> Subsystem<T> {
         }
     }
     pub fn depends_on<S: SubsystemTrait>(&mut self, other: &Subsystem<S>) {
-        let mut managed = self.inner.write().unwrap();
-        managed.deps.push(other.clone().as_opaque_weak());
+        self.write().guard.deps.push(other.clone().as_opaque_weak());
     }
     pub fn with_lock<F, R>(&mut self, f: F) -> R
     where
@@ -79,6 +88,7 @@ impl<T: SubsystemTrait> Subsystem<T> {
             guard,
         }
     }
+    // todo: packet and period stuff here
     // This can be very dangerous
     pub unsafe fn cast<S: SubsystemTrait>(self) -> Subsystem<S> {
         todo!()
@@ -87,11 +97,11 @@ impl<T: SubsystemTrait> Subsystem<T> {
         self.inner
     }
     pub fn as_opaque_weak(self) -> WeakOpaque {
-        Arc::<RwLock<SubsystemManaged>>::downgrade(&self.inner)
+        StrongOpaque::downgrade(&self.inner)
     }
 }
 
-impl<T: SubsystemTrait + Sized + 'static> Clone for Subsystem<T> {
+impl<T: SubsystemTrait + 'static> Clone for Subsystem<T> {
     fn clone(&self) -> Self {
         Subsystem {
             _type: self._type,
