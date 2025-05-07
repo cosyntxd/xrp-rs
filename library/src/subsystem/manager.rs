@@ -1,11 +1,11 @@
 // todo: is a mutex needed here
 // todo: is an arc needed here
-use std::sync::{Arc, RwLock, RwLockWriteGuard};
+use std::{ptr::addr_of_mut, sync::{RwLock, RwLockWriteGuard}, time::Instant};
 
 use once_cell::sync::Lazy;
 
-use super::{StrongOpaque, Subsystem, SubsystemManaged, SubsystemRaw, SubsystemTrait, WeakOpaque};
-static TRACKER: Lazy<SubsystemManager> = Lazy::new(|| SubsystemManager::new());
+use super::{StrongOpaque, Subsystem, SubsystemRaw, SubsystemTrait, WeakOpaque};
+static mut TRACKER: Lazy<SubsystemManager> = Lazy::new(|| SubsystemManager::new());
 pub struct SubsystemManager {
     subsystems: RwLock<Vec<WeakOpaque>>,
 }
@@ -14,6 +14,9 @@ impl SubsystemManager {
         Self {
             subsystems: RwLock::new(vec![]),
         }
+    }
+    pub fn tracker() -> &'static mut Lazy<SubsystemManager> {
+        unsafe { &mut (TRACKER) }
     }
     pub fn get_subsystems(&mut self) -> RwLockWriteGuard<'_, Vec<WeakOpaque>> {
         self.subsystems.write().unwrap()
@@ -37,20 +40,36 @@ impl SubsystemManager {
     }
 
     pub fn execute_all_generic(&mut self, mut run: impl FnMut(&mut SubsystemRaw)) {
-        self.get_subsystems().clone().retain(|weak| {
+        self.get_subsystems().iter().for_each(|weak| {
             if let Some(strong) = weak.upgrade() {
                 if let Ok(mut guard) = strong.write() {
                     run(&mut guard.inner);
                 }
-                true
-            } else {
-                false // drop dead weak
             }
         });
     }
-    pub fn periodic_all() {}
-    pub fn write_packet_all() {}
-    pub fn read_packet_all() {}
+    pub fn periodic_all(&mut self) {
+        self.execute_all_generic(|sub| {
+            let now = Instant::now();
+            sub.get_base().periodic();
+            sub.last_periodic = now;
+        });
+    }
+    pub fn read_packet_all(&mut self) {
+        self.execute_all_generic(|sub| {
+            let now = Instant::now();
+            sub.get_base().received_packet();
+            sub.last_receive_packet = now;
+        });
+    }
+    pub fn write_packet_all(&mut self) {
+        self.execute_all_generic(|sub| {
+            let now = Instant::now();
+            sub.get_base().sending_packet();
+            sub.last_sent_packet = now;
+        });
+    }
+    
     pub fn remove_dropped(&mut self) {
         self.get_subsystems()
             .retain(|weak| weak.upgrade().is_some());
@@ -58,8 +77,8 @@ impl SubsystemManager {
     pub fn approximate_len(&mut self) -> usize {
         self.get_subsystems().len()
     }
+
     pub fn len(&mut self) -> usize {
-        // self.subsystems.iter().count()
-        0
+        self.get_subsystems().iter().filter(|weak| weak.upgrade().is_some()).count()
     }
 }
