@@ -8,14 +8,19 @@ use std::{
     time::Instant,
 };
 
-pub trait SubsystemTrait: Send + Sync + Any + 'static {
-    // todo: pass in more values, either dt or like everything
+use manager::SubsystemManager;
+
+pub trait SubsystemTrait: Any + Send + Sync + 'static {
     fn periodic(&mut self);
     fn received_packet(&mut self);
     fn sending_packet(&mut self);
+
+    fn as_any(&self) -> &dyn Any;
+    fn as_any_mut(&mut self) -> &mut dyn Any;
 }
+
 pub struct SubsystemRaw {
-    pub inner: Box<dyn Any + Send + Sync>,
+    pub inner: Box<dyn SubsystemTrait + Send + Sync>,
     pub creation: Instant,
     pub last_periodic: Instant,
     pub last_sent_packet: Instant,
@@ -23,11 +28,11 @@ pub struct SubsystemRaw {
 }
 // todo: check with miri for soundness
 impl SubsystemRaw {
-    pub fn as_type<T: SubsystemTrait>(&mut self) -> Option<&mut Box<T>>{
-        self.inner.downcast_mut::<Box<T>>()
+    pub fn as_ref<T: SubsystemTrait>(&self) -> &T {
+        self.inner.as_any().downcast_ref::<T>().unwrap()
     }
-    pub fn get_base(&mut self) -> &mut Box<dyn SubsystemTrait + 'static> {
-        self.inner.downcast_mut::<Box<dyn SubsystemTrait>>().unwrap()
+    pub fn as_mut<T: SubsystemTrait>(&mut self) -> &mut T {
+        self.inner.as_any_mut().downcast_mut::<T>().unwrap()
     }
 }
 pub struct SubsystemManaged {
@@ -59,6 +64,7 @@ impl<T: SubsystemTrait> Subsystem<T> {
             execution_id: 0,
         };
         let opaque = Arc::new(RwLock::new(managed));
+        SubsystemManager::tracker().add_opaque_subsystem(Arc::downgrade(&opaque.clone()));
         Subsystem {
             _type: PhantomData,
             inner: opaque,
@@ -115,6 +121,9 @@ impl<T: SubsystemTrait> PartialEq for Subsystem<T> {
         Arc::ptr_eq(&self.inner, &other.inner)
     }
 }
+// verify if: downcasting can be unchecked and unwraps can never fail
+// unchecked downcasting is 4 instructions on x86 but unchecked unwrap is 11
+// user controlls type of Any, so currently no guarantees that it can cast
 
 impl<T: SubsystemTrait> Eq for Subsystem<T> {}
 
@@ -127,7 +136,7 @@ impl<'a, T: SubsystemTrait> Deref for SubsystemReadGuard<'a, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        self.guard.inner.inner.downcast_ref::<T>().unwrap()
+        self.guard.inner.inner.as_any().downcast_ref::<T>().unwrap()
     }
 }
 
@@ -140,12 +149,12 @@ impl<'a, T: SubsystemTrait> Deref for SubsystemWriteGuard<'a, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        self.guard.inner.inner.downcast_ref::<T>().unwrap()
+        self.guard.inner.inner.as_any().downcast_ref::<T>().unwrap()
     }
 }
 
 impl<'a, T: SubsystemTrait> DerefMut for SubsystemWriteGuard<'a, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        self.guard.inner.inner.downcast_mut::<T>().unwrap()
+        self.guard.inner.inner.as_any_mut().downcast_mut::<T>().unwrap()
     }
 }

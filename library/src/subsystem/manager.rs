@@ -21,16 +21,20 @@ impl SubsystemManager {
     pub fn get_subsystems(&mut self) -> RwLockWriteGuard<'_, Vec<WeakOpaque>> {
         self.subsystems.write().unwrap()
     }
-    pub fn add_subsystem<T: SubsystemTrait>(&mut self, subsystem: Subsystem<T>) {
-        self.get_subsystems().push(subsystem.as_opaque_weak());
+    pub fn add_opaque_subsystem(&mut self, subsystem: WeakOpaque) {
+        self.get_subsystems().push(subsystem);
     }
+    pub fn add_subsystem<T: SubsystemTrait>(&mut self, subsystem: Subsystem<T>) {
+        self.add_opaque_subsystem(subsystem.as_opaque_weak());
+    }
+    
     pub fn get_subsystems_by_type<T: SubsystemTrait + 'static>(
         &mut self,
     ) -> impl Iterator<Item = StrongOpaque> {
         self.get_subsystems().clone().into_iter().filter_map(|sub| {
             sub.upgrade().and_then(|strong| {
                 let inner = &strong.read().ok()?.inner;
-                if inner.inner.is::<T>() {
+                if inner.inner.as_any().is::<T>() {
                     Some(strong.clone())
                 } else {
                     None
@@ -51,21 +55,21 @@ impl SubsystemManager {
     pub fn periodic_all(&mut self) {
         self.execute_all_generic(|sub| {
             let now = Instant::now();
-            sub.get_base().periodic();
+            sub.inner.periodic();
             sub.last_periodic = now;
         });
     }
     pub fn read_packet_all(&mut self) {
         self.execute_all_generic(|sub| {
             let now = Instant::now();
-            sub.get_base().received_packet();
+            sub.inner.received_packet();
             sub.last_receive_packet = now;
         });
     }
     pub fn write_packet_all(&mut self) {
         self.execute_all_generic(|sub| {
             let now = Instant::now();
-            sub.get_base().sending_packet();
+            sub.inner.sending_packet();
             sub.last_sent_packet = now;
         });
     }

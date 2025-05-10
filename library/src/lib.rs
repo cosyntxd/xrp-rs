@@ -1,8 +1,10 @@
+#![feature(trait_upcasting)]
 pub mod frc;
 #[cfg(feature = "gui")]
 pub mod gui;
 pub mod network;
 pub mod subsystem;
+// pub mod test;
 pub trait RobotBase {
     fn init() -> Self
     where

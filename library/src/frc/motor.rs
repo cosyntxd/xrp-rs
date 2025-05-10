@@ -5,12 +5,17 @@ pub struct Motor {
 }
 impl Motor {
     pub fn new() -> Self {
-        todo!()
+        Self {
+            id: 0,
+        }
+    }
+    pub fn move_to(&mut self, x: usize) {
+        
     }
 }
 impl SubsystemTrait for Motor {
     fn periodic(&mut self) {
-        todo!()
+        // todo!()
     }
 
     fn received_packet(&mut self) {
@@ -19,5 +24,13 @@ impl SubsystemTrait for Motor {
 
     fn sending_packet(&mut self) {
         todo!()
+    }
+    
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+    
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
     }
 }
