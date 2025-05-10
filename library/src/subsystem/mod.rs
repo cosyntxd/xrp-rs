@@ -10,11 +10,23 @@ use std::{
 
 use manager::SubsystemManager;
 
-pub trait SubsystemTrait: Any + Send + Sync + 'static {
+pub trait SubsystemTrait: AsAny + Any + Send + Sync + 'static {
     fn periodic(&mut self);
     fn received_packet(&mut self);
     fn sending_packet(&mut self);
+}
 
+impl<T: SubsystemTrait> AsAny for T {
+    fn as_any(&self) -> &dyn Any {
+        self as &dyn Any
+    }
+    
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self as &mut dyn Any
+    }
+}
+
+pub trait AsAny {
     fn as_any(&self) -> &dyn Any;
     fn as_any_mut(&mut self) -> &mut dyn Any;
 }
