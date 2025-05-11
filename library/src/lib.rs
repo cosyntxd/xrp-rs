@@ -1,4 +1,3 @@
-#![feature(trait_upcasting)]
 pub mod frc;
 #[cfg(feature = "gui")]
 pub mod gui;
