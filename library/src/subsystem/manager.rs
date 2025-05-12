@@ -4,6 +4,8 @@ use std::{ptr::addr_of_mut, sync::{RwLock, RwLockWriteGuard}, time::Instant};
 
 use once_cell::sync::Lazy;
 
+use crate::network::{recieve::XRPReceivePacket, send::XRPSendPacket};
+
 use super::{StrongOpaque, Subsystem, SubsystemRaw, SubsystemTrait, WeakOpaque};
 static mut TRACKER: Lazy<SubsystemManager> = Lazy::new(|| SubsystemManager::new());
 pub struct SubsystemManager {
@@ -59,17 +61,17 @@ impl SubsystemManager {
             sub.last_periodic = now;
         });
     }
-    pub fn read_packet_all(&mut self) {
+    pub fn read_packet_all(&mut self, packet: &XRPReceivePacket) {
         self.execute_all_generic(|sub| {
             let now = Instant::now();
-            sub.inner.received_packet();
+            sub.inner.received_packet(packet);
             sub.last_receive_packet = now;
         });
     }
-    pub fn write_packet_all(&mut self) {
+    pub fn write_packet_all(&mut self, packet: &mut XRPSendPacket) {
         self.execute_all_generic(|sub| {
             let now = Instant::now();
-            sub.inner.sending_packet();
+            sub.inner.sending_packet(packet);
             sub.last_sent_packet = now;
         });
     }

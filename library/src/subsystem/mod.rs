@@ -10,10 +10,12 @@ use std::{
 
 use manager::SubsystemManager;
 
+use crate::network::{recieve::XRPReceivePacket, send::XRPSendPacket};
+
 pub trait SubsystemTrait: AsAny + Any + Send + Sync + 'static {
     fn periodic(&mut self);
-    fn received_packet(&mut self);
-    fn sending_packet(&mut self);
+    fn received_packet(&mut self, packet: &XRPReceivePacket);
+    fn sending_packet(&mut self, packet: &mut XRPSendPacket);
 }
 
 impl<T: SubsystemTrait> AsAny for T {
