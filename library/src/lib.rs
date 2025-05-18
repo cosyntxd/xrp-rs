@@ -1,6 +1,9 @@
-pub mod frc;
 #[cfg(feature = "gui")]
 pub mod gui;
+// #[cfg(feature = "nt")]
+pub mod network_tables;
+
+pub mod frc;
 pub mod network;
 pub mod subsystem;
 // pub mod test;

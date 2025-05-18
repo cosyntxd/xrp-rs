@@ -1,7 +1,7 @@
 use xrp::{frc::motor::Motor, subsystem::Subsystem, subsystem::manager::SubsystemManager};
 fn main() {
-    let mut a = Subsystem::new(Motor::new());
-    let mut b = Subsystem::new(Motor::new());
+    let mut a = Subsystem::new(Motor::new(0));
+    let mut b = Subsystem::new(Motor::new(1));
     a.depends_on(&b);
 
     a.with_lock(|sub| sub.move_to(90));

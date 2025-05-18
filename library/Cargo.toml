@@ -5,9 +5,13 @@ edition = "2021"
 
 [features]
 default = []
-gui = ["macroquad"]
+gui = ["eframe", "egui", "env_logger"]
+nt = []
+
 
 [dependencies]
-lazy_static = "1.5.0"
-macroquad = { version = "0.4.13", optional = true }
-once_cell = "1.20.3"
+eframe = {version = "0.31.1", optional = true}
+egui = {version = "0.31.1", optional = true}
+env_logger = {version = "0.11.8", optional = true}
+nt_table = {git = "https://github.com/frclib-rs-group/frclib-nettables", package = "frclib-nt4", rev = "5a421747eaeeea86b94525dcb47c77daea68a5e2"}
+once_cell = "1.21.3"
