@@ -1,6 +1,6 @@
 // todo: is a mutex needed here
 // todo: is an arc needed here
-use std::{ptr::addr_of_mut, sync::{RwLock, RwLockWriteGuard}, time::Instant};
+use std::{sync::{RwLock, RwLockWriteGuard}, time::Instant};
 
 use once_cell::sync::Lazy;
 
@@ -18,7 +18,7 @@ impl SubsystemManager {
         }
     }
     pub fn tracker() -> &'static mut Lazy<SubsystemManager> {
-        unsafe { &mut (TRACKER) }
+        unsafe { &mut TRACKER }
     }
     pub fn get_subsystems(&mut self) -> RwLockWriteGuard<'_, Vec<WeakOpaque>> {
         self.subsystems.write().unwrap()

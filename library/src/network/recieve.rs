@@ -15,9 +15,6 @@ pub struct XRPReceivePacket {
 }
 impl XRPReceivePacket {
     pub fn from_bytes(bytes: &[u8]) -> Self {
-        // todo: currently wont error on incomplete data
-        // errors are the least of your concern
-        // the thing costs like $120 and its now fucked
         let mut packet = XRPReceivePacket::default();
 
         let sequence = u16::from_ne_bytes([bytes[0], bytes[1]]);
