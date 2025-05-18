@@ -4,5 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+nt = { git = "https://github.com/first-rust-competition/nt-rs"}
+nt_table = {git = "https://github.com/frclib-rs-group/frclib-nettables", package = "frclib-nt4", rev = "5a42174"}
 once_cell = "1.21.3"
+pollster = "0.4.0"
 xrp = {path = "../library", features = ["gui", "nt"]}

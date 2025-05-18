@@ -1,4 +1,20 @@
 // few people are crazy enough to implement a working server
+
+// pub struct NetworkTable {
+    
+// }
+// impl NetworkTable {
+//     pub fn bind(addr: &str) -> Self {
+//         Self {}
+//     }
+//     pub fn set(&mut self, key: &str, value: u8) {
+
+//     }
+//     pub fn get(&mut self, key: &str, value: u8) {
+
+//     }
+// }
+
 use frclib_core::value::IntoFrcValue;
 use std::{net::SocketAddr, ops::{Deref, DerefMut}};
 use nt_table::{client, server::BlockingServerHandle, server::config::ServerConfig};

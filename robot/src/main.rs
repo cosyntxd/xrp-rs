@@ -1,6 +1,7 @@
-use std::thread;
+use std::{net::SocketAddr, thread};
 
 use xrp::{frc::motor::Motor, subsystem::Subsystem, subsystem::manager::SubsystemManager, network_tables::NetworkTable};
+use nt::{EntryData, NetworkTables};
 fn main() {
     let mut nt_table = NetworkTable::bind("127.0.0.1:5810");
     let mut a = Subsystem::new(Motor::new(0));
@@ -14,15 +15,16 @@ fn main() {
     
     SubsystemManager::tracker().periodic_all();
     assert!(SubsystemManager::tracker().len() == 2);
+    // let mut table = nt_table::server::BlockingServerHandle::start(SocketAddr, config)
+    // let mut nt = NetworkTables::bind("127.0.0.1:5810", "nt-rs-server");
+    // let a = pollster::block_on(nt.create_entry(EntryData::new("yoooooo".to_owned(), 0, nt::EntryValue::Boolean(false)))).unwrap();
+    nt_table.publish_topic("aa", 1);
+    
 
     loop {
-        nt_table.publish_topic("amigo", 1).unwrap();
-        nt_table.publish_topic("amigo", 1).unwrap();
-        nt_table.set_topic_value("amigo", 1);
-        nt_table.set_topic_value("amigo", 1);
-        nt_table.set_topic_value_w_timestamp("amigo", 1, 0);
-        println!("{:?}", nt_table.get_topic_value(&format!("amigo")));
-
         thread::sleep_ms(1);
+
+        println!("{:?}", nt_table.get_topic_value(&"aa".to_owned()).unwrap());
+    //     nt.update_entry(a, nt::EntryValue::Double(0.0));
     }
 }
