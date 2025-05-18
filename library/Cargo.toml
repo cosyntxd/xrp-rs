@@ -13,5 +13,12 @@ nt = []
 eframe = {version = "0.31.1", optional = true}
 egui = {version = "0.31.1", optional = true}
 env_logger = {version = "0.11.8", optional = true}
-nt_table = {git = "https://github.com/frclib-rs-group/frclib-nettables", package = "frclib-nt4", rev = "5a421747eaeeea86b94525dcb47c77daea68a5e2"}
+
+# WebSocket connection to 'ws://127.0.0.1:5810/nt/AdvantageScope' failed:
+# Error during WebSocket handshake: Sent non-empty 'Sec-WebSocket-Protocol' header but no response was received
+
+frclib-core = {version = "0.2.4", features = ["basic"]}
+# nt_table = {git = "https://github.com/frclib-rs-group/frclib-nettables", package = "frclib-nt4", rev = "5a42174"}
+nt_table = {path = "/Users/ryan/Github/frclib-nettables", package = "frclib-nt4" } # 5a42174 but conifg is public
+
 once_cell = "1.21.3"
