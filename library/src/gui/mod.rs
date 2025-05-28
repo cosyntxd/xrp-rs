@@ -1,10 +1,34 @@
-pub use macroquad::prelude::*;
+use cursor::Cursor;
+use keys::Key;
 
-pub mod shapes;
+mod keys;
+mod cursor;
 
-pub struct FieldGui {}
+static mut FIELD_GUI_EXISTS: bool = false;
+
+pub struct FieldGui {
+    width: u32,
+    height: u32,
+    title: String,
+    
+}
 impl FieldGui {
     pub fn new() -> Self {
-        Self {}
+        if unsafe {FIELD_GUI_EXISTS} {
+            eprintln!("but why do you need two? ping me with your use case")
+        }
+        todo!()
     }
+    pub fn get_cursor() -> Cursor {
+        todo!()
+    }
+    pub fn get_key() -> Key {
+        todo!()
+    }
+}
+
+pub struct GUIDropDown {
+    opened: bool,
+
+
 }
