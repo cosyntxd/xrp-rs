@@ -40,6 +40,7 @@ pub struct SubsystemRaw {
     pub last_sent_packet: Instant,
     pub last_receive_packet: Instant,
 }
+/// SAFETY: inner is guaranteed to implement SubsystemTrait
 // todo: check with miri for soundness
 impl SubsystemRaw {
     pub fn as_ref<T: SubsystemTrait>(&self) -> &T {
@@ -108,10 +109,13 @@ impl<T: SubsystemTrait> Subsystem<T> {
             guard,
         }
     }
-    // todo: packet and period stuff here
-    // This can be very dangerous
+    /// Safety: T and S both implement SubsystemTrait but no guarantees they can cast to eachother.
+    /// Casting is deferred for later and user should implement converting inner subsystem from T to S
     pub unsafe fn cast<S: SubsystemTrait>(self) -> Subsystem<S> {
-        todo!()
+        Subsystem {
+            _type: PhantomData,
+            inner: self.inner,
+        }
     }
     pub fn as_opaque_strong(self) -> StrongOpaque {
         self.inner

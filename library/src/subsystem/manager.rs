@@ -1,5 +1,3 @@
-// todo: is a mutex needed here
-// todo: is an arc needed here
 use std::{sync::{RwLock, RwLockWriteGuard}, time::Instant};
 
 use once_cell::sync::Lazy;
@@ -12,7 +10,7 @@ pub struct SubsystemManager {
     subsystems: RwLock<Vec<WeakOpaque>>,
 }
 impl SubsystemManager {
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self {
             subsystems: RwLock::new(vec![]),
         }
@@ -29,7 +27,6 @@ impl SubsystemManager {
     pub fn add_subsystem<T: SubsystemTrait>(&mut self, subsystem: Subsystem<T>) {
         self.add_opaque_subsystem(subsystem.as_opaque_weak());
     }
-    
     pub fn get_subsystems_by_type<T: SubsystemTrait + 'static>(
         &mut self,
     ) -> impl Iterator<Item = StrongOpaque> {
