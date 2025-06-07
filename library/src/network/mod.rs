@@ -22,7 +22,7 @@ pub struct XRPConnection {
 }
 impl XRPConnection {
     pub fn new() -> Self {
-        let socket = UdpSocket::bind("192.168.42.16:3540").unwrap();
+        let socket = UdpSocket::bind("192.168.42.17:3540").unwrap();
         let socket_clone = socket.try_clone().unwrap();
 
         let (tx, rx) = mpsc::channel();
