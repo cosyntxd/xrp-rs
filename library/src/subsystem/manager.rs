@@ -1,11 +1,14 @@
-use std::{sync::{RwLock, RwLockWriteGuard}, time::Instant};
+use std::{
+    sync::{RwLock, RwLockWriteGuard},
+    time::Instant,
+};
 
 use once_cell::sync::Lazy;
 
 use crate::network::{recieve::XRPReceivePacket, send::XRPSendPacket};
 
 use super::{StrongOpaque, Subsystem, SubsystemRaw, SubsystemTrait, WeakOpaque};
-static mut TRACKER: Lazy<SubsystemManager> = Lazy::new(|| SubsystemManager::new());
+pub static mut TRACKER: Lazy<SubsystemManager> = Lazy::new(|| SubsystemManager::new());
 pub struct SubsystemManager {
     subsystems: RwLock<Vec<WeakOpaque>>,
 }
@@ -72,7 +75,7 @@ impl SubsystemManager {
             sub.last_sent_packet = now;
         });
     }
-    
+
     pub fn remove_dropped(&mut self) {
         self.get_subsystems()
             .retain(|weak| weak.upgrade().is_some());
@@ -82,6 +85,9 @@ impl SubsystemManager {
     }
 
     pub fn len(&mut self) -> usize {
-        self.get_subsystems().iter().filter(|weak| weak.upgrade().is_some()).count()
+        self.get_subsystems()
+            .iter()
+            .filter(|weak| weak.upgrade().is_some())
+            .count()
     }
 }

@@ -1,13 +1,14 @@
-use crate::{network::{recieve::XRPReceivePacket, send::XRPSendPacket}, subsystem::SubsystemTrait};
+use crate::{
+    network::{recieve::XRPReceivePacket, send::XRPSendPacket},
+    subsystem::SubsystemTrait,
+};
 
 //
-pub struct Encoder {   
+pub struct Encoder {
     id: u8,
 }
 impl Encoder {
-    pub fn new() {
-        
-    }
+    pub fn new() {}
 }
 impl SubsystemTrait for Encoder {
     fn received_packet(&mut self, packet: &XRPReceivePacket) {
@@ -23,10 +24,7 @@ pub struct Motor {
 }
 impl Motor {
     pub fn new(id: u8) -> Self {
-        Self {
-            id: id,
-            power: 0.0,
-        }
+        Self { id: id, power: 0.0 }
     }
     pub fn set_power(&mut self, voltage: f32) {
         self.power = voltage.clamp(-1.0, 1.0);
@@ -38,7 +36,5 @@ impl SubsystemTrait for Motor {
     }
 }
 
-// 
-pub struct Servo {
-    
-}
+//
+pub struct Servo {}
