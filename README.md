@@ -1,12 +1,16 @@
 # XRP-rs
-This repositry is an attempt to rewrite a small subset of the libraries from [wpilib](https://github.com/wpilibsuite/allwpilib) in rust - enough to get the [xrp](https://www.sparkfun.com/experiential-robotics-platform-xrp-kit-beta.html) robot to drive around from wasd input or follow a line. By no means is this a replacement for the full WPILib ecosystem, its just a fun project to learn rust and see how far I can go. 
+This repositry is an attempt to rewrite a small subset of the libraries from [wpilib](https://github.com/wpilibsuite/allwpilib) in rust - enough to get the [xrp](https://www.sparkfun.com/experiential-robotics-platform-xrp-kit-beta.html) robot to drive around from wasd input or follow a line. By no means is this a replacement for the full WPILib ecosystem, its just a fun project to learn rust and see how far I can go. Official documentation or programming the xrp in java can be found [here](https://docs.wpilib.org/en/latest/docs/xrp-robot/index.html), the rust implementation is meant to be similar but not exactly the same.
 
 # Updating firmware
-When you recieve your xrp, it should be running a recent enough version that will work. However, the newest firmware may work slightly better than what installed by default.
+When you recieve your xrp, it should be running a recent enough version that will work. However, you may want to upgrade to upgrade to the newest version to get some additional features or bug fixes. To install the latest firmware, do the following: 
 - Git clone https://github.com/wpilibsuite/xrp-wpilib-firmware
-- Open Visual Studio Code and install platformIO
 - Connect the XRP to your computer via USB
 - Hold the BOOTSEL and press the RESET button
+- It should appear as USB storage device
+- Open Visual Studio Code and install platformIO
+- Press ^⌥U to upload the firmware
+
+
 
 # Protocol
 The XRP by default will bind to localhost:3540 and both the library and the robot communicate over udp. It uses a binary-based protocol due to performance limitations and since there is no handshaking, they basically scream at each other and hope the other side is listening. This makes the protocol really easy to implement (~250 lines of code) and is also pretty fun to implement. Specifcation is laid out below.
@@ -16,7 +20,7 @@ The XRP by default will bind to localhost:3540 and both the library and the robo
 |-------------|---------|--------|
 | Sequence    | u16     | Packets with sequence numbers ≤ current maximum are discarded unless rollover is detected |
 | Control     | bool    | Robot enable/disable state (1 = enabled, 0 = disabled) |
-| Tagged Data | 0-8189  | Packets will be truncated to 8192 byes and 3 are already used|
+| Tagged Data | 0-8190  | Packets will be truncated to 8192 + 1 byes and 3 are already used|
 
 If a packet is cut off, and its payload is not included, then it will read past the buffer and cause undefined behavior. 
 
