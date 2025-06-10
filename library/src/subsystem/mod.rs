@@ -22,7 +22,7 @@ impl<T: SubsystemTrait> AsAny for T {
     fn as_any(&self) -> &dyn Any {
         self as &dyn Any
     }
-    
+
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self as &mut dyn Any
     }
@@ -173,6 +173,11 @@ impl<'a, T: SubsystemTrait> Deref for SubsystemWriteGuard<'a, T> {
 
 impl<'a, T: SubsystemTrait> DerefMut for SubsystemWriteGuard<'a, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        self.guard.inner.inner.as_any_mut().downcast_mut::<T>().unwrap()
+        self.guard
+            .inner
+            .inner
+            .as_any_mut()
+            .downcast_mut::<T>()
+            .unwrap()
     }
 }

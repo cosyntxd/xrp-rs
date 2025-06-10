@@ -1,3 +1,1 @@
-pub struct Cursor {
-    
-}
+pub struct Cursor {}

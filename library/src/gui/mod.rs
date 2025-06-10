@@ -1,8 +1,8 @@
 use cursor::Cursor;
 use keys::Key;
 
-mod keys;
 mod cursor;
+mod keys;
 
 static mut FIELD_GUI_EXISTS: bool = false;
 
@@ -10,11 +10,10 @@ pub struct FieldGui {
     width: u32,
     height: u32,
     title: String,
-    
 }
 impl FieldGui {
     pub fn new() -> Self {
-        if unsafe {FIELD_GUI_EXISTS} {
+        if unsafe { FIELD_GUI_EXISTS } {
             eprintln!("but why do you need two? ping me with your use case")
         }
         todo!()
@@ -29,6 +28,4 @@ impl FieldGui {
 
 pub struct GUIDropDown {
     opened: bool,
-
-
 }

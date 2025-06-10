@@ -15,7 +15,7 @@ pub struct ControllerConfig {
 }
 
 impl ControllerConfig {
-        pub fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             kp: 0.0,
             ki: 0.0,
@@ -88,22 +88,20 @@ impl ControllerConfig {
     }
 }
 
-
 pub struct PID {
     // Configuration
     pub config: ControllerConfig,
-    
+
     // Internal state
     pub integral: f64,
     pub prev_error: f64,
     pub initialized: bool,
-    
+
     // Statistics
     pub compute_count: u64,
 }
 impl PID {
-       pub fn new(config: ControllerConfig) -> Self {
-        
+    pub fn new(config: ControllerConfig) -> Self {
         Self {
             config,
             integral: 0.0,
@@ -112,7 +110,7 @@ impl PID {
             compute_count: 0,
         }
     }
-        fn apply_deadband(&self, error: f64) -> f64 {
+    fn apply_deadband(&self, error: f64) -> f64 {
         if self.config.deadband != 0.0 {
             if error.abs() <= self.config.deadband {
                 0.0
@@ -131,54 +129,58 @@ impl PID {
         }
 
         let error = self.apply_deadband(setpoint - process_variable);
-        
+
         let p_term = self.config.kp * error;
-        
+
         self.integral += error * dt;
-        
+
         if self.config.anti_windup {
-            self.integral = self.integral.clamp(self.config.integral_min, self.config.integral_max);
+            self.integral = self
+                .integral
+                .clamp(self.config.integral_min, self.config.integral_max);
         }
-        
+
         let i_term = self.config.ki * self.integral;
-        
+
         // Derivative term
         let d_term = if self.initialized {
             self.config.kd * (error - self.prev_error) / dt
         } else {
             0.0
         };
-        
+
         // Feedforward term
         let f_term = self.config.kf * setpoint;
-        
+
         let output = p_term + i_term + d_term + f_term;
-        
+
         let clamped_output = output.clamp(self.config.output_min, self.config.output_max);
-        
+
         if self.config.anti_windup && output != clamped_output {
             let excess = output - clamped_output;
             if self.config.ki != 0.0 {
                 let integral_reduction = excess / self.config.ki;
                 self.integral -= integral_reduction;
-                self.integral = self.integral.clamp(self.config.integral_min, self.config.integral_max);
+                self.integral = self
+                    .integral
+                    .clamp(self.config.integral_min, self.config.integral_max);
             }
         }
-        
+
         self.prev_error = error;
         self.initialized = true;
         self.compute_count += 1;
-        
+
         clamped_output
     }
-    
+
     pub fn reset(&mut self) {
         self.integral = 0.0;
         self.prev_error = 0.0;
         self.initialized = false;
         self.compute_count = 0;
     }
-        pub fn apply_ziegler_nichols_pi(&mut self, ultimate_gain: f64, ultimate_period: f64) {
+    pub fn apply_ziegler_nichols_pi(&mut self, ultimate_gain: f64, ultimate_period: f64) {
         self.config.kp = 0.45 * ultimate_gain;
         self.config.ki = 0.54 * ultimate_gain / ultimate_period;
         self.config.kd = 0.0;
