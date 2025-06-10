@@ -7,7 +7,7 @@ const XRP_TAG_ENCODER: u8 = 0x18;
 #[derive(Debug, Default)]
 pub struct XRPReceivePacket {
     pub sequence: u16,
-    pub encoder: [EncoderDataVersions; 4],
+    pub encoder: [XRPEncoderData; 4],
     pub button_pressed: bool,
     pub gyro: XRPGyroData,
     pub accel: XRPAccelData,
@@ -65,26 +65,22 @@ fn slice_to_float(bytes: &[u8]) -> f32 {
 /// The xrp ships with an older version that doesnt do cool stuff like acceleration.
 /// This is supposed to be fixed with the new firmware but i dont think wpilib
 /// actually uses the features.
-#[derive(Debug, Default)]
-enum EncoderDataVersions {
-    #[default]
-    XRPEncoderDataNew,
-}
 #[derive(Debug, Default, Clone, Copy)]
-pub struct XRPEncoderDataNew {
-    device_id: u8,
-    count: u16,
-    period: u8,
-    divisor: u8,
+pub struct XRPEncoderData {
+    pub device_id: u8,
+    pub count: i32,
+    pub has_rate: bool,
+    pub period: u32,
+    pub divisor: u32,
 }
-impl XRPEncoderDataNew {
+impl XRPEncoderData {
     pub fn from_bytes(bytes: &[u8]) -> Self {
-        // TODO: Check if actually uses bytes[1]
         Self {
             device_id: bytes[0],
-            count: u16::from_be_bytes([bytes[1], bytes[2]]),
-            period: bytes[3],
-            divisor: bytes[4],
+            count: i32::from_be_bytes([bytes[1], bytes[2], bytes[3], bytes[4]]),
+            has_rate: true,
+            period: u32::from_be_bytes([bytes[5], bytes[6], bytes[7], bytes[8]]),
+            divisor: u32::from_be_bytes([bytes[9], bytes[10], bytes[11], bytes[12]]),
         }
     }
 }
