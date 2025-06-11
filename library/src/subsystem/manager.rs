@@ -12,6 +12,7 @@ pub static mut TRACKER: Lazy<SubsystemManager> = Lazy::new(|| SubsystemManager::
 pub struct SubsystemManager {
     subsystems: RwLock<Vec<WeakOpaque>>,
 }
+
 impl SubsystemManager {
     fn new() -> Self {
         Self {
@@ -49,10 +50,11 @@ impl SubsystemManager {
         self.get_subsystems().iter().for_each(|weak| {
             if let Some(strong) = weak.upgrade() {
                 if let Ok(mut guard) = strong.write() {
-                    run(&mut guard.inner);
+                    guard.execute_deps_min_state(0, &mut run);
                 }
             }
         });
+        self.remove_dropped();
     }
     pub fn periodic_all(&mut self) {
         self.execute_all_generic(|sub| {

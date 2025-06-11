@@ -53,8 +53,66 @@ impl SubsystemRaw {
 pub struct SubsystemManaged {
     pub inner: SubsystemRaw,
     pub deps: Vec<WeakOpaque>,
-    pub execution_id: u16,
+    pub execution_id: u32,
 }
+
+impl SubsystemManaged {
+    pub fn is_dep_make_circular<T: SubsystemTrait>(&mut self, dep: &Subsystem<T>) -> bool{
+        if self.deps.len() == 0 {
+            let tmp = dep.inner.read().unwrap();
+            let left = tmp.inner.inner.as_ref();
+            let right = self.inner.inner.as_ref();
+            if std::ptr::addr_eq(left, right) {
+                return true;
+            }
+        }
+        for dep_systems in &self.deps {
+            if let Some(dep_strong) = dep_systems.upgrade() {
+                if dep_strong.write().unwrap().is_dep_make_circular(&dep) {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+    pub fn execute_deps_min_state(&mut self, state: u32, run: &mut impl FnMut(&mut SubsystemRaw)) {
+        if self.deps.len() == 0 {
+            if self.execution_id < state {
+                self.execution_id = state;
+                return run(&mut self.inner);
+            } else if self.execution_id == state {
+                return;
+            } else if self.execution_id > state{
+                // batteries should die after a year
+                panic!("please magical electron, roll over this int :pray:")
+            } else {
+                panic!("magical electron did magical things")
+            }
+        }
+        for dep_systems in &self.deps {
+            if let Some(dep_strong) = dep_systems.upgrade() {
+                dep_strong.write().unwrap().execute_deps_min_state(state, run);
+            }
+        }
+    }
+    pub fn is_already_circular(&self) {
+        self._is_already_circular(&self.inner);
+    }
+    fn _is_already_circular(&self, subsystem: &SubsystemRaw) -> bool {
+        if self.deps.len() == 0 {
+            return false;
+        }
+        for dep_systems in &self.deps {
+            if let Some(dep_strong) = dep_systems.upgrade() {
+                if dep_strong.write().unwrap()._is_already_circular(subsystem) {
+                    return true
+                }
+            }
+        }
+        false
+    }
+}
+
 type StrongOpaque = Arc<RwLock<SubsystemManaged>>;
 type WeakOpaque = Weak<RwLock<SubsystemManaged>>;
 
