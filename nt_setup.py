@@ -110,34 +110,38 @@ for lib in libraries:
 
 print("\nPatching library")
 
+try:
+    result = subprocess.run(
+        ['git', '--version'], 
+        capture_output=True, 
+        text=True, 
+        check=True
+    )
+except subprocess.CalledProcessError:
+    exit("Error: Git command failed")
+except FileNotFoundError:
+    exit("Error: Git is not installed or not in PATH")
 
-nt_library_path = os.path.join(rust_library_path, "nt4_rs", "src")
-for root, dirs, files in os.walk(nt_library_path):
-    for file in files:
-        if not file.endswith(".rs"):
-            continue
+original_cwd = os.getcwd()
+current_directory = os.path.dirname(os.path.abspath(__file__))
+patch_file = os.path.join(current_directory, "nt_patch.patch")
+os.chdir(rust_library_path)
 
-        filepath = os.path.join(root, file)
+# git diff -b upstream/master > /Users/ryan/Github/xrp-rs/nt_patch.patch
+try:
+    result = subprocess.run(
+        ['git', 'apply', patch_file], 
+        capture_output=True, 
+        text=True, 
+        check=True
+    )
+    
+except subprocess.CalledProcessError as e:
+    exit(f"Failed to apply patches: {e.stderr}")
 
-        with open(filepath, 'r', encoding='utf-8') as f:
-            content = f.read()
-            new_content = content
-
-            # library presumably for an older version of wpilib
-            new_content = new_content.replace('as u64', 'as usize')
-
-            new_content = new_content.replace('v_string.str ', 'v_string.str_')
-            new_content = new_content.replace('v_string._str', 'v_string.str_')
-            new_content = new_content.replace('s.str as *const u8', 's.str_ as *const u8')
-
-            new_content = new_content.replace('NT_String { str: ', 'NT_String { str_: ')
-            new_content = new_content.replace('NT_String { _str: ', 'NT_String { str_: ')            
-            
-            if new_content != content:
-                with open(filepath, 'w', encoding='utf-8') as f:
-                    f.write(new_content)
 
 print("\nClearing existing bindings")
+
 current_directory = os.path.dirname(os.path.abspath(__file__))
 debug_rust_deps = os.path.join(current_directory, "library", "target", "debug", "build")
 for dependency in os.listdir(debug_rust_deps):
