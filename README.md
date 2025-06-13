@@ -11,7 +11,7 @@ When you recieve your xrp, it should be running a recent enough version that wil
 - Press ^⌥U to upload the firmware
 
 # Example
-Contructs a simple tank drive that is controlled by the left joystick and powers the left and right motors. It also logs its position to the network table.
+Contructs a simple tank drive that is controlled by the left joystick and powers the left and right motors. It also calculates the odometry and logs it to the network table. See a more complete example in robot/
 ```rs
 pub struct TankDrive {
     left: Subsystem<EncodedMotor>,
@@ -20,6 +20,8 @@ pub struct TankDrive {
     joystick: Joystick,
     #[nt_log]
     pose: Pose2d,
+    power_scale: f32,
+
 }
 impl TankDrive {
     pub fn new() -> TankDrive {
@@ -28,14 +30,21 @@ impl TankDrive {
             right: Subsystem::new(EncodedMotor::new(1)),
             gyro: Subsystem::new(Gyro::new()),
             joystick: Joystick::new(0),
-            pose: Pose2d::new()
+            pose: Pose2d::new(),
+            power_scale: 1.0,
         }
+    }
+    pub fn set_power(&mut self, power: f32) {
+        self.power_scale = power;
     }
 }
 impl SubsystemTrait for TankDrive {
     fn periodic(&mut self, dt: f32) {
-        self.left.write().set_power(self.joystick.y + self.joystick.x);
-        self.right.write().set_power(self.joystick.y - self.joystick.x);
+        let left_power = power_scale * (self.joystick.y + self.joystick.x) as f32;
+        let right_power = power_scale * (self.joystick.y - self.joystick.x) as f32;
+
+        self.left.write().set_power(left_power);
+        self.right.write().set_power(right_power);
 
         let left_count = self.left.read().get_rate() * dt;
         let right_count = self.right.read().get_rate() * dt;
@@ -47,6 +56,16 @@ impl SubsystemTrait for TankDrive {
     }
 }
 ```
+# Usage
+This is a fun library trust, ong no cap fr fr
+- download and install rust
+- download and install rust the language
+- git clone this repo
+- cd robot/
+- cargo fetch
+- python3 ../nt_setup.py
+- cargo r
+
 
 # Protocol
 The XRP by default will bind to localhost:3540 and both the library and the robot communicate over udp. It uses a binary-based protocol due to performance limitations. Also since there is no handshaking, they basically scream at each other and hope the other side is listening. This makes the protocol really easy to implement (~200 lines for basic implementation) and is also pretty fun to write. Specifcation is laid out below.
