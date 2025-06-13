@@ -1,13 +1,35 @@
 import os
+import re
 import json
 import glob
+import time
+import shutil
 import zipfile
 import platform
 import subprocess
+from pathlib import Path
 
+start_time = time.time()
 rust_library_path = os.path.expanduser('~/.cargo/git/checkouts/robot.rs-83220dfd536c5f2a/7b4c487')
 if not os.path.exists(rust_library_path):
-    exit('Unable to setup the network table library because it is not downloaded, please install the cargo libraries')
+    exit("Unable to find the rust network table library, please run `cargo fetch` to download locally")
+
+rust_libs = os.path.join(rust_library_path, "wpilib-hal", "libs")
+rust_inc = os.path.join(rust_library_path, "wpilib-hal", "include")
+
+shutil.rmtree(rust_libs, ignore_errors=True)
+shutil.rmtree(rust_inc, ignore_errors=True)
+
+os.makedirs(rust_libs)
+os.makedirs(rust_inc)
+
+
+
+rust_inc = os.path.join(rust_library_path, "wpilib-hal", "include")
+
+if not os.path.exists(rust_libs) or not os.path.exists(rust_inc):
+    exit("failed to clear the include and libs directory")
+
 
 possible_paths = [
     os.path.expanduser("~/wpilib/2025/maven/edu/wpi/first/"),
@@ -18,10 +40,8 @@ possible_paths = [
 
     os.path.expanduser("~/wpilib/2024/maven/edu/wpi/first"),
     "C:/Users/Public/wpilib/2024/maven/edu/wpi/first",
-
 ]
-
-
+wpilib = None
 for path in possible_paths:
     if os.path.exists(path):
         wpilib = path
@@ -30,35 +50,24 @@ for path in possible_paths:
 if wpilib == None:
     exit("wpilib not detected on your system")
 
-system = platform.system().lower()
-if system == 'windows':
-    lib_ext = '.dll'
-    static_ext = '.lib'
-    lib_prefix = ''
-    platform_suffix = 'windowsx86-64'
-elif system == 'darwin':  # macOS
-    lib_ext = '.dylib'
-    static_ext = '.a'
-    lib_prefix = 'lib' 
-    platform_suffix = 'osxuniversal' # osxuniversal
 
-    # platform_suffix = 'osxx86-64' # osxuniversal
+file_ext = [".dll", ".lib", ".dylib", ".a", "lib", "so"]
+system = platform.system().lower()
+if system == 'windows': # spyware
+    platform_suffix = 'windowsx86-64'
+elif system == 'darwin':  # macOS' 
+    platform_suffix = 'osxuniversal' # osxx86-64
 else:  # Linux and other Unix-like
-    lib_ext = '.so'
-    static_ext = '.a'
-    lib_prefix = 'lib'
     platform_suffix = 'linuxx86-64'
 
 
 libraries = ["ntcore", "hal", "wpimath", "wpinet", "wpiutil"]
 
-libs_destination = os.path.join(rust_library_path, 'wpilib-hal', 'libs')
-include_destination = os.path.join(rust_library_path, 'wpilib-hal', 'include')
 
 print(f"Copying libraries from: {wpilib}")
+print(f"Libraries destination: {rust_libs}")
+print(f"Headers destination: {rust_inc}")
 print(f"Target platform: {platform_suffix}")
-print(f"Libraries destination: {libs_destination}")
-print(f"Headers destination: {include_destination}")
 print()
 
 
@@ -87,7 +96,6 @@ for lib in libraries:
     def extract_dylibs(zip_path, destination):
         with zipfile.ZipFile(zip_path, 'r') as zip_ref:
             for member in zip_ref.namelist():
-                print(member)
                 if (member.endswith('.dylib') or member.endswith('.h') or member.endswith('.inc')) and not member.endswith('/'):
                     filename = os.path.basename(member)
                     target_path = os.path.join(destination, filename)
@@ -95,44 +103,47 @@ for lib in libraries:
                     with zip_ref.open(member) as source, open(target_path, 'wb') as target:
                         target.write(source.read())
 
-    # extract_dylibs(headers, include_destination)
-    extract_dylibs(libs, libs_destination)
+    extract_dylibs(libs, rust_libs)
         
     with zipfile.ZipFile(headers, 'r') as zip_ref:
-        zip_ref.extractall(include_destination)
+        zip_ref.extractall(rust_inc)
 
-    # with zipfile.ZipFile(libs, 'r') as zip_ref:
-    #     zip_ref.extractall(libs_destination)
-# use 0.72
-# .whitelist_type from .allowlist_type for everything
-
-"""
-import os
-import json
-import glob
-import shutil
-import zipfile
-import platform
-import subprocess
-from pathlib import Path
-
-# ~/.cargo/git/checkouts/robot.rs-83220dfd536c5f2a/7b4c487
-rust_library_path = Path.home() / ".cargo" / "git" / "checkouts" / "robot.rs-83220dfd536c5f2a" / "7b4c487"
-rust_libs = rust_library_path / "wpilib-hal" / "libs"
-rust_inc = rust_library_path / "wpilib-hal" / "include"
-
-if not os.path.exists(rust_library_path):
-    if not os.path.exists(Path.home() / ".cargo"):
-        exit("You have not even installed rust yet")
-    else:
-        exit('Unable to setup the network table library because it is not downloaded, please install the cargo libraries')
-
-shutil.rmtree(rust_libs)
-shutil.rmtree(rust_inc)
-
-rust_libs.mkdir()
-rust_inc.mkdir()
+print("\nPatching library")
 
 
+nt_library_path = os.path.join(rust_library_path, "nt4_rs", "src")
+for root, dirs, files in os.walk(nt_library_path):
+    for file in files:
+        if not file.endswith(".rs"):
+            continue
 
-"""
+        filepath = os.path.join(root, file)
+
+        with open(filepath, 'r', encoding='utf-8') as f:
+            content = f.read()
+            new_content = content
+
+            # library presumably for an older version of wpilib
+            new_content = new_content.replace('as u64', 'as usize')
+
+            new_content = new_content.replace('v_string.str ', 'v_string.str_')
+            new_content = new_content.replace('v_string._str', 'v_string.str_')
+            new_content = new_content.replace('s.str as *const u8', 's.str_ as *const u8')
+
+            new_content = new_content.replace('NT_String { str: ', 'NT_String { str_: ')
+            new_content = new_content.replace('NT_String { _str: ', 'NT_String { str_: ')            
+            
+            if new_content != content:
+                with open(filepath, 'w', encoding='utf-8') as f:
+                    f.write(new_content)
+
+print("\nClearing existing bindings")
+current_directory = os.path.dirname(os.path.abspath(__file__))
+debug_rust_deps = os.path.join(current_directory, "library", "target", "debug", "build")
+for dependency in os.listdir(debug_rust_deps):
+    if "wpilib-hal" in dependency:
+        wpilib_dependency = os.path.join(debug_rust_deps, dependency)
+        shutil.rmtree(wpilib_dependency, ignore_errors=True)
+
+elapsed = time.time() - start_time
+print(f"\nSucessfully executed in {elapsed:.2f}s")
