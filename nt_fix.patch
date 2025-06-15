@@ -1,0 +1,276 @@
+diff --git a/nt4_rs/src/entry.rs b/nt4_rs/src/entry.rs
+index 0852881..e2f6fc0 100644
+--- a/nt4_rs/src/entry.rs
++++ b/nt4_rs/src/entry.rs
+@@ -1,6 +1,6 @@
+ use std::{ffi::CString, fmt::Debug};
+ 
+-use wpilib_hal::{NT_Entry, NT_GetEntry, NT_GetEntryType, NT_GetEntryName, NT_Value, NT_GetEntryValue, NT_SetEntryValue};
++use wpilib_hal::{NT_Entry, NT_GetEntry, NT_GetEntryType, NT_GetEntryName, NT_Value, NT_GetEntryValue, NT_SetEntryValue, WPI_String};
+ 
+ use crate::{instance::NetworkTableInstance, types::{Type, ValueContext, Value, NTResult}};
+ 
+@@ -11,9 +11,14 @@ pub struct Entry {
+ impl Entry {
+   pub fn new(inst: &NetworkTableInstance, name: &str) -> Self {
+     let cstr = CString::new(name).unwrap();
++    let wpi_name = WPI_String {
++      str_: cstr.as_ptr(),
++      len: cstr.as_bytes().len(),
++    };
+     Self {
+       handle: unsafe {
+-        NT_GetEntry(inst.handle, cstr.as_ptr(), cstr.as_bytes().len() as u64)
++        // NT_GetEntry(inst.handle, cstr.as_ptr(), cstr.as_bytes().len() as u64)
++        NT_GetEntry(inst.handle, &wpi_name)
+       }
+     }
+   }
+@@ -27,9 +32,16 @@ impl Entry {
+   }
+ 
+   pub fn get_name(&self) -> String {
+-    let mut len = 0;
+-    let buf = unsafe { NT_GetEntryName(self.handle, &mut len) };
+-    std::str::from_utf8(unsafe { std::slice::from_raw_parts(buf as *const u8, len as usize) }).unwrap().to_owned()
++    let empty_cstr = CString::new("").unwrap();
++    let mut string_buf = WPI_String {
++      str_: empty_cstr.as_ptr(),
++      len: 0,
++    };
++    unsafe { NT_GetEntryName(self.handle, &mut string_buf) };
++    unsafe {
++      let slice = std::slice::from_raw_parts(string_buf.str_ as *const u8, string_buf.len);
++      String::from_utf8_lossy(slice).to_string()
++    }
+   }
+ 
+   // TODO: Get / Set Persistent, Unpublish, Topic
+diff --git a/nt4_rs/src/instance.rs b/nt4_rs/src/instance.rs
+index a43b2bb..9f5fff8 100644
+--- a/nt4_rs/src/instance.rs
++++ b/nt4_rs/src/instance.rs
+@@ -1,6 +1,6 @@
+ use std::ffi::CString;
+ 
+-use wpilib_hal::{NT_Inst, NT_GetDefaultInstance, NT_CreateInstance, NT_DestroyInstance, NT_StartServer, NT_StopServer};
++use wpilib_hal::{NT_Inst, NT_GetDefaultInstance, NT_CreateInstance, NT_DestroyInstance, NT_StartServer, NT_StopServer, WPI_String};
+ 
+ use crate::entry::Entry;
+ 
+@@ -39,8 +39,8 @@ impl NetworkTableInstance {
+     unsafe {
+       NT_StartServer(
+         self.handle,
+-        cstr_persist.as_ptr(),
+-        cstr_listen.as_ptr(),
++        &WPI_String { str_: cstr_persist.as_ptr(), len: cstr_persist.count_bytes() },
++        &WPI_String { str_: cstr_listen.as_ptr(), len: cstr_listen.count_bytes() },
+         1735,
+         5810
+       )
+diff --git a/nt4_rs/src/topic.rs b/nt4_rs/src/topic.rs
+index dcef1a9..b596410 100644
+--- a/nt4_rs/src/topic.rs
++++ b/nt4_rs/src/topic.rs
+@@ -1,6 +1,6 @@
+ use std::{ffi::CString};
+ 
+-use wpilib_hal::{NT_Topic, NT_GetTopic, NT_GetTopicType, NT_GetTopicTypeString, NT_SetTopicPersistent, NT_GetTopicPersistent, NT_SetTopicRetained, NT_GetTopicRetained, NT_GetTopicExists};
++use wpilib_hal::{NT_Topic, NT_GetTopic, NT_GetTopicType, NT_GetTopicTypeString, NT_SetTopicPersistent, NT_GetTopicPersistent, NT_SetTopicRetained, NT_GetTopicRetained, NT_GetTopicExists, WPI_String};
+ 
+ use crate::{instance::NetworkTableInstance, types::Type};
+ 
+@@ -11,9 +11,14 @@ struct Topic {
+ impl Topic {
+   pub fn new(instance: &NetworkTableInstance, name: &str) -> Self {
+     let cstr = CString::new(name).unwrap();
++    let wpi_name = WPI_String {
++      str_: cstr.as_ptr(),
++      len: cstr.as_bytes().len(),
++    };
+     Self {
+       handle: unsafe {
+-        NT_GetTopic(instance.handle, cstr.as_ptr(), cstr.as_bytes().len() as u64)
++        // NT_GetTopic(instance.handle, cstr.as_ptr(), cstr.as_bytes().len() as u64)
++        NT_GetTopic(instance.handle, &wpi_name)
+       }
+     }
+   }
+@@ -23,9 +28,16 @@ impl Topic {
+   }
+ 
+   pub fn get_type_str(&self) -> String {
+-    let mut len = 0;
+-    let buf = unsafe { NT_GetTopicTypeString(self.handle, &mut len) };
+-    std::str::from_utf8(unsafe { std::slice::from_raw_parts(buf as *const u8, len as usize) }).unwrap().to_owned()
++    let empty_cstr = CString::new("").unwrap();
++    let mut string_buf = WPI_String {
++      str_: empty_cstr.as_ptr(),
++      len: 0,
++    };
++    unsafe { NT_GetTopicTypeString(self.handle, &mut string_buf) };
++    unsafe {
++      let slice = std::slice::from_raw_parts(string_buf.str_ as *const u8, string_buf.len);
++      String::from_utf8_lossy(slice).to_string()
++    }
+   }
+ 
+   pub fn set_persistent(&mut self, persistent: bool) {
+diff --git a/nt4_rs/src/types.rs b/nt4_rs/src/types.rs
+index a5c59f7..63c198b 100644
+--- a/nt4_rs/src/types.rs
++++ b/nt4_rs/src/types.rs
+@@ -1,6 +1,6 @@
+ use std::{slice, error::Error, fmt::Display};
+ 
+-use wpilib_hal::{NT_Type, NT_Value, NT_Now, NT_String};
++use wpilib_hal::{NT_Type, NT_Value, NT_Now, WPI_String};
+ 
+ #[derive(Debug, Clone)]
+ pub enum NTError {
+@@ -85,7 +85,7 @@ impl From<NT_Value> for ValueContext {
+       NT_Type::NT_BOOLEAN => Value::Boolean(unsafe { value.data.v_boolean != 0 }),
+       NT_Type::NT_DOUBLE => Value::Double(unsafe { value.data.v_double }),
+       NT_Type::NT_STRING => Value::String({
+-        std::str::from_utf8(unsafe { std::slice::from_raw_parts(value.data.v_string.str as *const u8, value.data.v_string.len as usize) }).unwrap().to_owned()
++        std::str::from_utf8(unsafe { std::slice::from_raw_parts(value.data.v_string.str_ as *const u8, value.data.v_string.len as usize) }).unwrap().to_owned()
+       }),
+       NT_Type::NT_RAW => Value::Raw({
+         unsafe { slice::from_raw_parts(value.data.v_raw.data, value.data.v_raw.size as usize).into() }
+@@ -99,7 +99,7 @@ impl From<NT_Value> for ValueContext {
+       NT_Type::NT_STRING_ARRAY => {
+         let s_arr = unsafe { slice::from_raw_parts(value.data.arr_string.arr, value.data.arr_string.size as usize) };
+         Value::StringArray(s_arr.iter().map(|s| {
+-          std::str::from_utf8(unsafe { std::slice::from_raw_parts(s.str as *const u8, s.len as usize) }).unwrap().to_owned()
++          std::str::from_utf8(unsafe { std::slice::from_raw_parts(s.str_ as *const u8, s.len as usize) }).unwrap().to_owned()
+         }).collect())
+       },
+       NT_Type::NT_RPC => panic!("Cannot read an RPC"),
+@@ -137,13 +137,13 @@ impl Value {
+       Value::Double(v) => f({ ntv.type_ = NT_Type::NT_DOUBLE; ntv.data.v_double = *v; ntv }),
+       Value::String(v) => {
+         ntv.type_ = NT_Type::NT_STRING;
+-        ntv.data.v_string.len = v.as_bytes().len() as u64;
+-        ntv.data.v_string.str = v.as_ptr() as *mut i8;   // These casts are very unsafe, but we make the assumption that NT doesn't mutate the pointer
++        ntv.data.v_string.len = v.as_bytes().len() as usize;
++        ntv.data.v_string.str_ = v.as_ptr() as *mut i8;   // These casts are very unsafe, but we make the assumption that NT doesn't mutate the pointer
+         f(ntv)
+       },
+       Value::Raw(v) => {
+         ntv.type_ = NT_Type::NT_RAW;
+-        ntv.data.v_raw.size = v.len() as u64;
++        ntv.data.v_raw.size = v.len() as usize;
+         ntv.data.v_raw.data = v.as_ptr() as *mut u8;   // These casts are very unsafe, but we make the assumption that NT doesn't mutate the pointer
+         f(ntv)
+       },
+@@ -152,23 +152,28 @@ impl Value {
+         for i in 0..arr.len() { buf[i] = arr[i] as i32 }
+ 
+         ntv.type_ = NT_Type::NT_BOOLEAN_ARRAY;
+-        ntv.data.arr_boolean.size = arr.len() as u64;
++        ntv.data.arr_boolean.size = arr.len() as usize;
+         ntv.data.arr_boolean.arr = buf.as_ptr() as *mut i32;
+         f(ntv)
+       },
+       Value::DoubleArray(arr) => {
+         ntv.type_ = NT_Type::NT_DOUBLE_ARRAY;
+-        ntv.data.arr_double.size = arr.len() as u64;
++        ntv.data.arr_double.size = arr.len() as usize;
+         ntv.data.arr_double.arr = arr.as_ptr() as *mut f64;
+         f(ntv)
+       },
+       Value::StringArray(arr) => {
+         let mut buf = vec![Default::default(); arr.len()];
+-        for i in 0..arr.len() { buf[i] = NT_String { str: arr[i].as_ptr() as *mut i8, len: arr[i].len() as u64  } };
++        for i in 0..arr.len() {
++          buf[i] = WPI_String {
++            str_: arr[i].as_ptr() as *const i8,
++            len: arr[i].len() as usize
++          }
++        }
+ 
+         ntv.type_ = NT_Type::NT_STRING_ARRAY;
+-        ntv.data.arr_string.size = arr.len() as u64;
+-        ntv.data.arr_string.arr = buf.as_ptr() as *mut NT_String;
++        ntv.data.arr_string.size = arr.len() as usize;
++        ntv.data.arr_string.arr = buf.as_ptr() as *mut WPI_String;
+         f(ntv)
+       },
+       Value::Integer(v) => f({ ntv.type_ = NT_Type::NT_INTEGER; ntv.data.v_int = *v as i64; ntv }),
+@@ -178,13 +183,13 @@ impl Value {
+         for i in 0..arr.len() { buf[i] = arr[i] as i64 }
+ 
+         ntv.type_ = NT_Type::NT_INTEGER_ARRAY;
+-        ntv.data.arr_int.size = arr.len() as u64;
++        ntv.data.arr_int.size = arr.len() as usize;
+         ntv.data.arr_int.arr = buf.as_ptr() as *mut i64;
+         f(ntv)
+       },
+       Value::FloatArray(arr) => {
+         ntv.type_ = NT_Type::NT_FLOAT_ARRAY;
+-        ntv.data.arr_float.size = arr.len() as u64;
++        ntv.data.arr_float.size = arr.len() as usize;
+         ntv.data.arr_float.arr = arr.as_ptr() as *mut f32;
+         f(ntv)
+       },
+diff --git a/wpilib-hal/Cargo.toml b/wpilib-hal/Cargo.toml
+index 20c00e8..540cf94 100644
+--- a/wpilib-hal/Cargo.toml
++++ b/wpilib-hal/Cargo.toml
+@@ -16,4 +16,4 @@ libs_dir = ["libs/"]
+ [dependencies]
+ 
+ [build-dependencies]
+-bindgen = "0.53.1"
+\ No newline at end of file
++bindgen = "0.66.1"
+\ No newline at end of file
+diff --git a/wpilib-hal/build.rs b/wpilib-hal/build.rs
+index 240ea63..419eb3f 100644
+--- a/wpilib-hal/build.rs
++++ b/wpilib-hal/build.rs
+@@ -17,9 +17,9 @@ fn main() {
+     .header("HALWrapper.h")
+     .derive_default(true)
+     .clang_arg("-Iinclude")
+-    .whitelist_type(SYMBOL_REGEX)
+-    .whitelist_function(SYMBOL_REGEX)
+-    .whitelist_var(SYMBOL_REGEX)
++    .allowlist_type(SYMBOL_REGEX)
++    .allowlist_function(SYMBOL_REGEX)
++    .allowlist_var(SYMBOL_REGEX)
+     .default_enum_style(bindgen::EnumVariation::Rust { non_exhaustive: false })
+     .parse_callbacks(Box::new(bindgen::CargoCallbacks))
+     .generate()
+diff --git a/wpilib-hal/include/.gitignore b/wpilib-hal/include/.gitignore
+deleted file mode 100644
+index a3a0c8b..0000000
+--- a/wpilib-hal/include/.gitignore
++++ /dev/null
+@@ -1,2 +0,0 @@
+-*
+-!.gitignore
+\ No newline at end of file
+diff --git a/wpilib-hal/libs/.gitignore b/wpilib-hal/libs/.gitignore
+deleted file mode 100644
+index a3a0c8b..0000000
+--- a/wpilib-hal/libs/.gitignore
++++ /dev/null
+@@ -1,2 +0,0 @@
+-*
+-!.gitignore
+\ No newline at end of file
+diff --git a/wpilib-hal/src/calling.rs b/wpilib-hal/src/calling.rs
+index 5d6113f..1cfbddc 100644
+--- a/wpilib-hal/src/calling.rs
++++ b/wpilib-hal/src/calling.rs
+@@ -26,7 +26,7 @@ macro_rules! hal_safe_call {
+     use wpilib_hal::calling::WpiHalError;
+     unsafe {
+       let mut status = 0;
+-      let result = $function($($arg,)* &mut status as *mut i32);
++      let result = $function($($arg,)*);
+ 
+       if status == 0 {
+         Ok(result)
