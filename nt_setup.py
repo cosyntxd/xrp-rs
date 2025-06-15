@@ -137,10 +137,17 @@ try:
     )
     
 except subprocess.CalledProcessError as e:
-    exit(f"Failed to apply patches: {e.stderr}")
+    if "patch does not apply" in e.stderr:
+        print("Patches already applied")
+    else:
+        exit(f"Failed to apply patches: {e.stderr}")
 
 
 print("\nClearing existing bindings")
+
+lock_file = os.path.join(rust_library_path, "wpilib-hal", "Cargo.lock")
+if os.path.exists(lock_file):
+    os.remove(lock_file)
 
 current_directory = os.path.dirname(os.path.abspath(__file__))
 debug_rust_deps = os.path.join(current_directory, "library", "target", "debug", "build")
