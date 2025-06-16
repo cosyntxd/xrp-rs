@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 macroquad = "0.4.14"
 xrp = {path = "../library", features = ["gui", "nt"]}
+nt4_rs = {git = "https://github.com/JaciBrunning/robot.rs", package = "nt4_rs"}
