@@ -10,9 +10,24 @@ import subprocess
 from pathlib import Path
 
 start_time = time.time()
+
+if not shutil.which("cargo"):
+    exit("Rust/Cargo is not properly installed on this system")
+
+cargo_fetch_result = subprocess.run(
+    ["cargo", "fetch"],
+    capture_output=True,
+    cwd="library",
+    text=True,
+    check=False
+)
+
+if cargo_fetch_result.stderr:
+    exit(cargo_fetch_result.stderr)
+
 rust_library_path = os.path.expanduser('~/.cargo/git/checkouts/robot.rs-83220dfd536c5f2a/7b4c487')
 if not os.path.exists(rust_library_path):
-    exit("Unable to find the rust network table library, please run `cargo fetch` to download locally")
+    exit("Unable to find the rust network table library, please make sure `cargo fetch` works")
 
 rust_libs = os.path.join(rust_library_path, "wpilib-hal", "libs")
 rust_inc = os.path.join(rust_library_path, "wpilib-hal", "include")
@@ -41,6 +56,7 @@ possible_paths = [
     os.path.expanduser("~/wpilib/2024/maven/edu/wpi/first"),
     "C:/Users/Public/wpilib/2024/maven/edu/wpi/first",
 ]
+
 wpilib = None
 for path in possible_paths:
     if os.path.exists(path):
@@ -60,16 +76,13 @@ elif system == 'darwin':  # macOS'
 else:  # Linux and other Unix-like
     platform_suffix = 'linuxx86-64'
 
-
 libraries = ["ntcore", "hal", "wpimath", "wpinet", "wpiutil"]
-
 
 print(f"Copying libraries from: {wpilib}")
 print(f"Libraries destination: {rust_libs}")
 print(f"Headers destination: {rust_inc}")
 print(f"Target platform: {platform_suffix}")
 print()
-
 
 for lib in libraries:
     print(f"Processing {lib}")
@@ -118,16 +131,16 @@ try:
         check=True
     )
 except subprocess.CalledProcessError:
-    exit("Error: Git command failed")
+    exit("Git command failed")
 except FileNotFoundError:
-    exit("Error: Git is not installed or not in PATH")
+    exit("Git is not installed or not in PATH")
 
 original_cwd = os.getcwd()
 current_directory = os.path.dirname(os.path.abspath(__file__))
-patch_file = os.path.join(current_directory, "nt_patch.patch")
+patch_file = os.path.join(current_directory, "nt_fix.patch")
 os.chdir(rust_library_path)
 
-# git diff -b upstream/master > /Users/ryan/Github/xrp-rs/nt_patch.patch
+# git diff -b upstream/master > /Users/ryan/Github/xrp-rs/nt_fix.patch
 try:
     result = subprocess.run(
         ['git', 'apply', patch_file], 

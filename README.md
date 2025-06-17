@@ -61,11 +61,8 @@ This is a fun library trust, ong no cap fr fr
 - download and install rust
 - download and install rust the language
 - git clone this repo
-- cd robot/
-- cargo fetch
-- python3 ../nt_setup.py
+- python3 nt_setup.py
 - cargo r
-
 
 # Protocol
 The XRP by default will bind to localhost:3540 and both the library and the robot communicate over udp. It uses a binary-based protocol due to performance limitations. Also since there is no handshaking, they basically scream at each other and hope the other side is listening. This makes the protocol really easy to implement (~200 lines for basic implementation) and is also pretty fun to write. Specifcation is laid out below.
