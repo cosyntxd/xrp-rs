@@ -129,9 +129,9 @@ impl PID {
         }
 
         let error = self.apply_deadband(setpoint - process_variable);
-
+        // P
         let p_term = self.config.kp * error;
-
+        // I
         self.integral += error * dt;
 
         if self.config.anti_windup {
@@ -142,14 +142,14 @@ impl PID {
 
         let i_term = self.config.ki * self.integral;
 
-        // Derivative term
+        // D
         let d_term = if self.initialized {
             self.config.kd * (error - self.prev_error) / dt
         } else {
             0.0
         };
 
-        // Feedforward term
+        // F
         let f_term = self.config.kf * setpoint;
 
         let output = p_term + i_term + d_term + f_term;

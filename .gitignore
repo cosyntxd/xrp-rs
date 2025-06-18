@@ -2,3 +2,4 @@ Cargo.lock
 debug/
 target/
 robot/networktables.json
+.DS_Store

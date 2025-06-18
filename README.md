@@ -57,11 +57,12 @@ impl SubsystemTrait for TankDrive {
 }
 ```
 # Usage
-This is a fun library trust, ong no cap fr fr
+Why wouldnt you install this fun rust library?
 - download and install rust
 - download and install rust the language
 - git clone this repo
 - python3 nt_setup.py
+- cd robot
 - cargo r
 
 # Protocol
