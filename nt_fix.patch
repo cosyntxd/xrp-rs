@@ -214,18 +214,6 @@ index a5c59f7..63c198b 100644
          ntv.data.arr_float.arr = arr.as_ptr() as *mut f32;
          f(ntv)
        },
-diff --git a/wpilib-hal/Cargo.toml b/wpilib-hal/Cargo.toml
-index 20c00e8..540cf94 100644
---- a/wpilib-hal/Cargo.toml
-+++ b/wpilib-hal/Cargo.toml
-@@ -16,4 +16,4 @@ libs_dir = ["libs/"]
- [dependencies]
- 
- [build-dependencies]
--bindgen = "0.53.1"
-\ No newline at end of file
-+bindgen = "0.66.1"
-\ No newline at end of file
 diff --git a/wpilib-hal/build.rs b/wpilib-hal/build.rs
 index 240ea63..419eb3f 100644
 --- a/wpilib-hal/build.rs
@@ -243,24 +231,6 @@ index 240ea63..419eb3f 100644
      .default_enum_style(bindgen::EnumVariation::Rust { non_exhaustive: false })
      .parse_callbacks(Box::new(bindgen::CargoCallbacks))
      .generate()
-diff --git a/wpilib-hal/include/.gitignore b/wpilib-hal/include/.gitignore
-deleted file mode 100644
-index a3a0c8b..0000000
---- a/wpilib-hal/include/.gitignore
-+++ /dev/null
-@@ -1,2 +0,0 @@
--*
--!.gitignore
-\ No newline at end of file
-diff --git a/wpilib-hal/libs/.gitignore b/wpilib-hal/libs/.gitignore
-deleted file mode 100644
-index a3a0c8b..0000000
---- a/wpilib-hal/libs/.gitignore
-+++ /dev/null
-@@ -1,2 +0,0 @@
--*
--!.gitignore
-\ No newline at end of file
 diff --git a/wpilib-hal/src/calling.rs b/wpilib-hal/src/calling.rs
 index 5d6113f..1cfbddc 100644
 --- a/wpilib-hal/src/calling.rs

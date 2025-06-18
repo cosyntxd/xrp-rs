@@ -14,6 +14,15 @@ start_time = time.time()
 if not shutil.which("cargo"):
     exit("Rust/Cargo is not properly installed on this system")
 
+
+rust_library_path = os.path.expanduser('~/.cargo/git/checkouts/robot.rs-83220dfd536c5f2a/7b4c487')
+
+
+lock_file = os.path.join(rust_library_path, "wpilib-hal", "Cargo.lock")
+if os.path.exists(lock_file):
+    os.remove(lock_file)
+
+
 cargo_fetch_result = subprocess.run(
     ["cargo", "fetch"],
     capture_output=True,
@@ -22,12 +31,12 @@ cargo_fetch_result = subprocess.run(
     check=False
 )
 
+if not os.path.exists(rust_library_path):
+    exit("Unable to find the rust network table library, please make sure `cargo fetch` works")
+
 if cargo_fetch_result.stderr:
     exit(cargo_fetch_result.stderr)
 
-rust_library_path = os.path.expanduser('~/.cargo/git/checkouts/robot.rs-83220dfd536c5f2a/7b4c487')
-if not os.path.exists(rust_library_path):
-    exit("Unable to find the rust network table library, please make sure `cargo fetch` works")
 
 rust_libs = os.path.join(rust_library_path, "wpilib-hal", "libs")
 rust_inc = os.path.join(rust_library_path, "wpilib-hal", "include")
@@ -37,8 +46,6 @@ shutil.rmtree(rust_inc, ignore_errors=True)
 
 os.makedirs(rust_libs)
 os.makedirs(rust_inc)
-
-
 
 rust_inc = os.path.join(rust_library_path, "wpilib-hal", "include")
 
@@ -150,17 +157,13 @@ try:
     )
     
 except subprocess.CalledProcessError as e:
-    if "patch does not apply" in e.stderr:
-        print("Patches already applied")
-    else:
-        exit(f"Failed to apply patches: {e.stderr}")
+    # if "patch does not apply" in e.stderr:
+    #     print("Patches already applied")
+    # else:
+    exit(f"Failed to apply patches: {e.stderr}")
 
 
 print("\nClearing existing bindings")
-
-lock_file = os.path.join(rust_library_path, "wpilib-hal", "Cargo.lock")
-if os.path.exists(lock_file):
-    os.remove(lock_file)
 
 current_directory = os.path.dirname(os.path.abspath(__file__))
 debug_rust_deps = os.path.join(current_directory, "library", "target", "debug", "build")
