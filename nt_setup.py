@@ -22,11 +22,11 @@ lock_file = os.path.join(rust_library_path, "wpilib-hal", "Cargo.lock")
 if os.path.exists(lock_file):
     os.remove(lock_file)
 
-
+xrp_library_path = os.path.join(os.path.dirname(__file__), "library")
 cargo_fetch_result = subprocess.run(
     ["cargo", "fetch"],
     capture_output=True,
-    cwd="library",
+    cwd=xrp_library_path,
     text=True,
     check=False
 )
@@ -145,23 +145,28 @@ except FileNotFoundError:
 original_cwd = os.getcwd()
 current_directory = os.path.dirname(os.path.abspath(__file__))
 patch_file = os.path.join(current_directory, "nt_fix.patch")
-os.chdir(rust_library_path)
 
 # git diff -b upstream/master > /Users/ryan/Github/xrp-rs/nt_fix.patch
 try:
-    result = subprocess.run(
-        ['git', 'apply', patch_file], 
-        capture_output=True, 
-        text=True, 
-        check=True
+    patch_result = subprocess.run(
+        ["patch", "-p1"],
+        input=open(patch_file).read(),
+        capture_output=True,
+        text=True,
+        check=False,
+        cwd=rust_library_path
     )
     
 except subprocess.CalledProcessError as e:
-    # if "patch does not apply" in e.stderr:
-    #     print("Patches already applied")
-    # else:
     exit(f"Failed to apply patches: {e.stderr}")
 
+# git bitching about this patch but python would never hurt me <3 ily
+cargo_toml_path = os.path.join(rust_library_path, "wpilib-hal", "Cargo.toml")
+with open(cargo_toml_path, 'r') as f:
+    content = f.read()
+updated_content = content.replace('bindgen = \"0.53.1\"', 'bindgen = \"0.66.1\"')
+with open(cargo_toml_path, 'w') as f:
+    f.write(updated_content)
 
 print("\nClearing existing bindings")
 
