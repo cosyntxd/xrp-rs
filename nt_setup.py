@@ -1,7 +1,4 @@
 import os
-import re
-import json
-import glob
 import time
 import shutil
 import zipfile
@@ -74,7 +71,7 @@ if wpilib == None:
     exit("wpilib not detected on your system")
 
 
-file_ext = [".dll", ".lib", ".dylib", ".a", "lib", "so"]
+file_ext = [".dll", ".lib", ".dylib", ".a", "lib", "so", "h", "c", "cpp"]
 system = platform.system().lower()
 if system == 'windows': # spyware
     platform_suffix = 'windowsx86-64'
@@ -116,17 +113,19 @@ for lib in libraries:
     def extract_dylibs(zip_path, destination):
         with zipfile.ZipFile(zip_path, 'r') as zip_ref:
             for member in zip_ref.namelist():
-                if (member.endswith('.dylib') or member.endswith('.h') or member.endswith('.inc')) and not member.endswith('/'):
+                if any([member.endswith(ext) for ext in file_ext]):
+                    
                     filename = os.path.basename(member)
                     target_path = os.path.join(destination, filename)
 
                     with zip_ref.open(member) as source, open(target_path, 'wb') as target:
                         target.write(source.read())
 
-    extract_dylibs(libs, rust_libs)
-        
+    # headers like their folders
     with zipfile.ZipFile(headers, 'r') as zip_ref:
         zip_ref.extractall(rust_inc)
+    # libraries do not
+    extract_dylibs(libs, rust_libs)
 
 print("\nPatching library")
 
@@ -138,9 +137,9 @@ try:
         check=True
     )
 except subprocess.CalledProcessError:
-    exit("Git command failed")
+    exit("`git --version` failed")
 except FileNotFoundError:
-    exit("Git is not installed or not in PATH")
+    exit("git is not installed or not in PATH")
 
 original_cwd = os.getcwd()
 current_directory = os.path.dirname(os.path.abspath(__file__))
@@ -149,22 +148,19 @@ patch_file = os.path.join(current_directory, "nt_fix.patch")
 # git diff -b upstream/master > /Users/ryan/Github/xrp-rs/nt_fix.patch
 try:
     patch_result = subprocess.run(
-        ["patch", "-p1"],
-        input=open(patch_file).read(),
-        capture_output=True,
-        text=True,
-        check=False,
+        ['git', 'apply', patch_file], 
         cwd=rust_library_path
     )
-    
+
 except subprocess.CalledProcessError as e:
     exit(f"Failed to apply patches: {e.stderr}")
 
 # git bitching about this patch but python would never hurt me <3 ily
+# also rust likes to be funny and switch to a broken version because theres no Cargo.lock to stop it
 cargo_toml_path = os.path.join(rust_library_path, "wpilib-hal", "Cargo.toml")
 with open(cargo_toml_path, 'r') as f:
     content = f.read()
-updated_content = content.replace('bindgen = \"0.53.1\"', 'bindgen = \"0.66.1\"')
+updated_content = content.replace('bindgen = \"0.53.1\"', 'bindgen = \"=0.66.1\"')
 with open(cargo_toml_path, 'w') as f:
     f.write(updated_content)
 
