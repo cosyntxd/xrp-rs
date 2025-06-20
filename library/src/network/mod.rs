@@ -19,10 +19,11 @@ pub struct XRPConnection {
     handle: JoinHandle<()>,
     last_recieved: Arc<Mutex<Instant>>,
     last_sent: Instant,
+    address: String,
 }
 impl XRPConnection {
-    pub fn new() -> Self {
-        let socket = UdpSocket::bind("192.168.42.17:3540").unwrap();
+    pub fn new(address: &'static str) -> Option<Self> {
+        let socket = UdpSocket::bind(address).ok()?;
         let socket_clone = socket.try_clone().unwrap();
 
         let (tx, rx) = mpsc::channel();
@@ -42,17 +43,19 @@ impl XRPConnection {
             }
         });
 
-        Self {
+        let connection = Self {
             packet_receiver: rx,
             socket,
             handle,
             last_recieved,
             last_sent: Instant::now(),
-        }
+            address: String::new()
+        };
+        Some(connection)
     }
     pub fn send(&mut self, data: XRPSendPacket) {
         self.socket
-            .send_to(&data.build_packet(), "192.168.42.1:3540")
+            .send_to(&data.build_packet(), self.address.clone())
             .unwrap();
         self.last_sent = Instant::now();
     }

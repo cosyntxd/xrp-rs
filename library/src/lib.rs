@@ -1,7 +1,7 @@
-#[cfg(feature = "gui")]
-pub mod gui;
+// #[cfg(feature = "gui")]
+// pub mod gui;
 #[cfg(feature = "nt")]
-pub mod network_tables;
+pub mod nt;
 
 pub mod frc;
 pub mod network;
